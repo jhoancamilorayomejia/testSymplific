@@ -35,4 +35,6 @@ public class BeneficioService {
         UbicacionDTO ubicacion = nominatimClient.buscarUbicacionPorCiudad(empleado.getCiudad());
         return new BeneficiosConUbicacionResponse(beneficios, ubicacion);
     }
+
+    
 }

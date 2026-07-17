@@ -35,6 +35,9 @@ public class Empleado {
     @Column(nullable = false, length = 100)
     private String ciudad;
 
+    @Column(length = 255)
+    private String direccion;
+
     @Column(name = "fecha_ingreso")
     private LocalDate fechaIngreso;
 

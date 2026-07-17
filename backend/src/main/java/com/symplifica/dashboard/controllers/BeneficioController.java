@@ -27,4 +27,6 @@ public class BeneficioController {
     public Beneficio crear(@PathVariable Long idEmpleado, @Valid @RequestBody Beneficio beneficio) {
         return beneficioService.crear(idEmpleado, beneficio);
     }
+
+   
 }

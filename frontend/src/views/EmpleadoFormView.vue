@@ -5,7 +5,7 @@ import empleadoService from '../services/empleadoService'
 
 const router = useRouter()
 const form = ref({
-  nombre: '', apellido: '', email: '', cargo: '', ciudad: '', fechaIngreso: ''
+  nombre: '', apellido: '', email: '', cargo: '', ciudad: '', direccion: '', fechaIngreso: ''
 })
 
 async function guardar() {
@@ -23,6 +23,7 @@ async function guardar() {
     <input v-model="form.email" type="email" placeholder="Email" required />
     <input v-model="form.cargo" placeholder="Cargo" />
     <input v-model="form.ciudad" placeholder="Ciudad" required />
+    <input v-model="form.direccion" placeholder="Dirección" />
     <input v-model="form.fechaIngreso" type="date" />
     <button type="submit">Guardar</button>
   </form>
