@@ -1,5 +1,6 @@
 package com.symplifica.dashboard.client;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
 import com.symplifica.dashboard.dto.NominatimPlaceDTO;
 import com.symplifica.dashboard.dto.NominatimSearchResultsDTO;
@@ -26,6 +27,7 @@ public class NominatimClient {
 
     public NominatimClient(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
+        this.xmlMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     public UbicacionDTO buscarUbicacionPorCiudad(String ciudad) {

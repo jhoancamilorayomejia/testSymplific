@@ -1,5 +1,6 @@
 package com.symplifica.dashboard.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -16,6 +17,7 @@ public class Beneficio {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_empleado", nullable = false)
+    @JsonIgnore
     private Empleado empleado;
 
     @NotBlank
