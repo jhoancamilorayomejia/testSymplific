@@ -1,0 +1,12 @@
+{
+  "name": "testSymplific",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run frontend\" \"npm run backend\"",
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && ./mvnw spring-boot:run"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
