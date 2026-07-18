@@ -135,6 +135,8 @@ onMounted(cargarEmpleados)
               <th>Email</th>
               <th>Cargo</th>
               <th>Ciudad</th>
+              <th>Fecha de registro</th>
+              <th>Registrado por</th>
               <th></th>
             </tr>
           </thead>
@@ -145,66 +147,69 @@ onMounted(cargarEmpleados)
               <td class="cell-muted">{{ emp.email }}</td>
               <td>{{ emp.cargo || '—' }}</td>
               <td>{{ emp.ciudad }}</td>
+              <td>{{ new Date(emp.createdAt).toLocaleDateString('es-CO') }}</td>
+              <td>{{ emp.usuarioRegistro?.email || '—' }}</td>
               <td class="cell-action">
-  <button class="btn-link" @click.stop="verDetalle(emp.id)">Ver detalle →</button>
-  <button class="btn-link" @click.stop="abrirModalEditar(emp)">Editar</button>
-  <button class="btn-link btn-danger" @click.stop="eliminar(emp.id)">Eliminar</button>
-</td>
+                <button class="btn-link" @click.stop="verDetalle(emp.id)">Ver detalle →</button>
+                <button class="btn-link" @click.stop="abrirModalEditar(emp)">Editar</button>
+                <button class="btn-link btn-danger" @click.stop="eliminar(emp.id)">Eliminar</button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </main>
+
     <Teleport to="body">
-  <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h2>Editar empleado</h2>
-        <button class="modal-close" @click="cerrarModal" aria-label="Cerrar">×</button>
+      <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h2>Editar empleado</h2>
+            <button class="modal-close" @click="cerrarModal" aria-label="Cerrar">×</button>
+          </div>
+
+          <form class="modal-form" @submit.prevent="guardarEdicion">
+            <div class="form-row">
+              <label>Nombre completo</label>
+              <input v-model="formEdit.nombre" required />
+            </div>
+            <div class="form-row">
+              <label>Apellido</label>
+              <input v-model="formEdit.apellido" required />
+            </div>
+            <div class="form-row">
+              <label>Email</label>
+              <input v-model="formEdit.email" type="email" required />
+            </div>
+            <div class="form-row">
+              <label>Cargo</label>
+              <input v-model="formEdit.cargo" />
+            </div>
+            <div class="form-row">
+              <label>Ciudad</label>
+              <input v-model="formEdit.ciudad" required />
+            </div>
+            <div class="form-row">
+              <label>Dirección</label>
+              <input v-model="formEdit.direccion" />
+            </div>
+            <div class="form-row">
+              <label>Fecha de ingreso</label>
+              <input v-model="formEdit.fechaIngreso" type="date" />
+            </div>
+
+            <p v-if="errorModal" class="state-message state-error modal-error">{{ errorModal }}</p>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-ghost-dark" @click="cerrarModal">Cancelar</button>
+              <button type="submit" class="btn-primary" :disabled="guardando">
+                {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-
-      <form class="modal-form" @submit.prevent="guardarEdicion">
-        <div class="form-row">
-          <label>Nombre</label>
-          <input v-model="formEdit.nombre" required />
-        </div>
-        <div class="form-row">
-          <label>Apellido</label>
-          <input v-model="formEdit.apellido" required />
-        </div>
-        <div class="form-row">
-          <label>Email</label>
-          <input v-model="formEdit.email" type="email" required />
-        </div>
-        <div class="form-row">
-          <label>Cargo</label>
-          <input v-model="formEdit.cargo" />
-        </div>
-        <div class="form-row">
-          <label>Ciudad</label>
-          <input v-model="formEdit.ciudad" required />
-        </div>
-        <div class="form-row">
-          <label>Dirección</label>
-          <input v-model="formEdit.direccion" />
-        </div>
-        <div class="form-row">
-          <label>Fecha de ingreso</label>
-          <input v-model="formEdit.fechaIngreso" type="date" />
-        </div>
-
-        <p v-if="errorModal" class="state-message state-error modal-error">{{ errorModal }}</p>
-
-        <div class="modal-actions">
-          <button type="button" class="btn-ghost-dark" @click="cerrarModal">Cancelar</button>
-          <button type="submit" class="btn-primary" :disabled="guardando">
-            {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</Teleport>
+    </Teleport>
   </div>
 </template>
 
@@ -398,7 +403,11 @@ h1 {
   background: white;
   border: 1px solid #E4E7E4;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+}
+
+table {
+  min-width: 900px;
 }
 
 table { width: 100%; border-collapse: collapse; }
@@ -437,20 +446,25 @@ tbody tr:last-child td { border-bottom: none; }
   font-weight: 700;
 }
 
-.cell-name { font-weight: 600; }
-.cell-muted { color: #6B7C78; }
+.cell-name { font-weight: 600; white-space: nowrap; }
+.cell-muted { color: #6B7C78; white-space: nowrap; }
 
-.cell-action { text-align: right; }
+.cell-action {
+  text-align: right;
+  white-space: nowrap;
+}
 .btn-link {
   background: none;
   border: none;
   color: #1C8F7A;
   font-weight: 600;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
-  padding: 0;
+  padding: 0.2rem 0.4rem;
+  white-space: nowrap;
 }
 .btn-link:hover { text-decoration: underline; }
+.btn-danger { color: #B3402A; }
 
 @media (max-width: 640px) {
   .content { padding: 1.5rem 1rem 3rem; }

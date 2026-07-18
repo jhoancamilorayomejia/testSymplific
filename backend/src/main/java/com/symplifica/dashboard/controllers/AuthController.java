@@ -27,14 +27,14 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-        .orElseThrow(CredencialesInvalidasException::new);
+                .orElseThrow(CredencialesInvalidasException::new);
 
-if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-    throw new CredencialesInvalidasException();
-}
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new CredencialesInvalidasException();
+        }
 
         String token = jwtUtil.generarToken(user.getEmail(), user.getRol());
-        return ResponseEntity.ok(new LoginResponse(token, user.getEmail(), user.getRol()));
+        return ResponseEntity.ok(new LoginResponse(token, user.getIdUser(), user.getEmail(), user.getRol()));
     }
 
     @PostMapping("/register")
@@ -46,12 +46,12 @@ if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
         User user = new User();
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRol("ADMIN"); // rol fijo
+        user.setRol("ADMIN");
 
         User guardado = userRepository.save(user);
 
         String token = jwtUtil.generarToken(guardado.getEmail(), guardado.getRol());
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new LoginResponse(token, guardado.getEmail(), guardado.getRol()));
+                .body(new LoginResponse(token, guardado.getIdUser(), guardado.getEmail(), guardado.getRol()));
     }
 }
