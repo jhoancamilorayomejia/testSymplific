@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: symplifica-db
+    environment:
+      POSTGRES_DB: symplifica-db
+      POSTGRES_USER: symplifica
+      POSTGRES_PASSWORD: symplifica_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U symplifica -d symplifica-db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: symplifica-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/symplifica-db
+      SPRING_DATASOURCE_USERNAME: symplifica
+      SPRING_DATASOURCE_PASSWORD: symplifica_pass
+      JWT_SECRET: cambia-esto-en-produccion
+      JWT_EXPIRATION_MS: 86400000
+    ports:
+      - "8080:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: symplifica-frontend
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  postgres_data:

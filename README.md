@@ -90,3 +90,15 @@ npm start
 cd backend
 ./mvnw test
 \`\`\`
+
+## Ejecutar con Docker
+\`\`\`bash
+docker compose up --build
+\`\`\`
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8080
+
+## ingresar al contenedor desde el CMD
+\`\`\`bash
+docker exec -it symplifica-db psql -U symplifica -d symplifica-db
+\`\`\`
