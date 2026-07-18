@@ -3,110 +3,203 @@
 Prueba técnica Fullstack MID — Dashboard de empleados con gestión de beneficios
 y enriquecimiento de ubicación vía la API de Nominatim (OpenStreetMap).
 
-## Stack
-- Backend: Java 17+, Spring Boot, Spring Security (JWT), JPA/Hibernate
-- Frontend: VueJS 3, Vue Router, Pinia
-- Base de datos: PostgreSQL corriendo mediante docker
-- Integración externa: Nominatim (OpenStreetMap), formato XML
+# La aplicación permite:
 
-## Configuración de base de datos
-1. Crear la base de datos:
-   \`\`\`sql
-   CREATE DATABASE symplifica-db;
-   \`\`\`
+- Gestión de empleados.
+- Gestión de beneficios asociados a cada empleado.
+- Consulta de ubicación mediante la API de **Nominatim (OpenStreetMap)**.
+- Autenticación mediante **JWT**.
+- Recuperación de contraseña mediante correo electrónico (funcionalidad adicional).
+- Orquestación de los servicios **Backend** y **Frontend** mediante **Docker Compose**.
 
-2. Crear la tabla users:
-   \`\`\`sql
-   CREATE TABLE users (
-      iduser      BIGSERIAL PRIMARY KEY,
-      email       VARCHAR(150) NOT NULL UNIQUE,
-      password    VARCHAR(255) NOT NULL,
-      rol         VARCHAR(50) NOT NULL
-   );
-   \`\`\`
+---
 
-3. Crear la tabla empleados:
-   \`\`\`sql
-   CREATE TABLE empleados (
-    id              BIGSERIAL PRIMARY KEY,
-    nombre          VARCHAR(100) NOT NULL,
-    apellido        VARCHAR(100) NOT NULL,
-    email           VARCHAR(150) NOT NULL UNIQUE,
-    cargo           VARCHAR(100),
-    ciudad          VARCHAR(100) NOT NULL,
-    direccion       VARCHAR(250),
-    fecha_ingreso   DATE,
-    created_at      TIMESTAMP NOT NULL DEFAULT NOW()
+# Tecnologías utilizadas
+
+- **Backend:** Java 17+, Spring Boot, Spring Security (JWT), JPA/Hibernate
+- **Frontend:** Vue.js 3, Vue Router, Pinia
+- **Base de datos:** PostgreSQL (Docker)
+- **Integración externa:** Nominatim (OpenStreetMap) - XML
+
+---
+
+# Configuración de la base de datos
+
+## 1. Crear la base de datos
+
+```sql
+CREATE DATABASE symplifica-db;
+```
+
+---
+
+## 2. Crear la tabla `users`
+
+```sql
+CREATE TABLE users (
+    iduser BIGSERIAL PRIMARY KEY,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    rol VARCHAR(50) NOT NULL,
+    reset_token VARCHAR(255),
+    reset_token_expiry TIMESTAMP
 );
-   \`\`\`
+```
 
-4. Crear la tabla beneficios:
-   \`\`\`sql
-   CREATE TABLE beneficios (
-    id                  BIGSERIAL PRIMARY KEY,
-    monto               NUMERIC(12,2) NOT NULL,
-    nombre_beneficio    VARCHAR(150) NOT NULL,
-    id_empleado         BIGINT NOT NULL,
+---
+
+## 3. Crear la tabla `empleados`
+
+```sql
+CREATE TABLE empleados (
+    id BIGSERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    cargo VARCHAR(100),
+    ciudad VARCHAR(100) NOT NULL,
+    direccion VARCHAR(250),
+    fecha_ingreso DATE,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+```
+
+---
+
+## 4. Crear la tabla `beneficios`
+
+```sql
+CREATE TABLE beneficios (
+    id BIGSERIAL PRIMARY KEY,
+    monto NUMERIC(12,2) NOT NULL,
+    nombre_beneficio VARCHAR(150) NOT NULL,
+    id_empleado BIGINT NOT NULL,
 
     CONSTRAINT fk_beneficio_empleado
         FOREIGN KEY (id_empleado)
         REFERENCES empleados(id)
         ON DELETE CASCADE
-   );
-    \`\`\`
-   
-5. Configurar(en este apartado debe colocar usuario y clave propia de su PC)
-   `src/main/resources/application.properties`:
-   \`\`\`properties
-   spring.datasource.url=jdbc:postgresql://localhost:5432/symplifica-db
-   spring.datasource.username=postgres
-   spring.datasource.password=tu_password
-   jwt.secret=cambia-esto-en-produccion
-   jwt.expiration-ms=86400000
-   \`\`\`
+);
+```
 
-## Ejecutar el backend
-\`\`\`bash
+---
+# Configuración del backend
+
+Editar el archivo:
+
+```
+backend/src/main/resources/application.properties
+```
+
+Configurar el usuario y la contraseña de PostgreSQL según tu equipo:
+
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/symplifica-db
+spring.datasource.username=postgres
+spring.datasource.password=tu_password
+
+jwt.secret=cambia-esto-en-produccion
+jwt.expiration-ms=86400000
+```
+
+---
+
+# Ejecutar el backend
+
+```bash
 cd backend
 ./mvnw spring-boot:run
-\`\`\`
-API disponible en `http://localhost:8080`
+```
 
-## Ejecutar el frontend
-\`\`\`bash
+Disponible en:
+
+```
+http://localhost:8080
+```
+
+---
+
+# Ejecutar el frontend
+
+```bash
 cd frontend
 npm install
 npm run dev
-\`\`\`
-App disponible en `http://localhost:5173`
+```
 
-## Ejecutar el backend y el frontend al mismo tiempo(desde la raiz del proyecto)
-\`\`\`bash
+Disponible en:
+
+```
+http://localhost:5173
+```
+
+---
+
+# Ejecutar backend y frontend simultáneamente
+
+Desde la raíz del proyecto:
+
+```bash
 npm start
-\`\`\`
+```
 
-## Ejecutar tests
-\`\`\`bash
+La aplicación estará disponible en:
+
+```
+http://localhost:5173
+```
+
+---
+
+# Ejecutar las pruebas
+
+```bash
 cd backend
 ./mvnw test
-\`\`\`
+```
 
-## Ejecutar con Docker
-\`\`\`bash
+---
+
+# Ejecutar con Docker
+
+```bash
 docker compose up --build
-\`\`\`
+```
+
+Servicios disponibles:
+
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080
 
-## ingresar al contenedor desde el CMD
-\`\`\`bash
-docker exec -it symplifica-db psql -U symplifica -d symplifica-db
-\`\`\`
+---
 
-## Configuración de correo (SMTP)
-\`\`\`properties
-MAIL_HOST=smtp.gmail.com
-MAIL_PORT=587
-MAIL_USERNAME=tu-correo@gmail.com
-MAIL_PASSWORD=tu-app-password
-\`\`\`
+# Acceder a PostgreSQL desde el contenedor
+
+```bash
+docker exec -it symplifica-db psql -U symplifica -d symplifica-db
+```
+
+---
+
+# Configuración de correo (SMTP) *(Adicional)*
+
+Se agregó esta funcionalidad para permitir la recuperación de contraseña mediante correo electrónico.
+
+Para ello se utilizan las columnas de la tabla users:
+
+- `reset_token`
+- `reset_token_expiry`
+
+Estas almacenan el token de recuperación y la fecha de expiración del mismo.
+
+Para utilizar esta funcionalidad es necesario generar una **App Password** desde una cuenta de Gmail y configurar las siguientes propiedades:
+
+```properties
+spring.mail.host=${MAIL_HOST:smtp.gmail.com}
+spring.mail.port=${MAIL_PORT:587}
+spring.mail.username=${MAIL_USERNAME:tu-correo@gmail.com}
+spring.mail.password=${MAIL_PASSWORD:tu-app-password}
+
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+```
