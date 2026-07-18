@@ -162,14 +162,22 @@ cd backend
 
 # Ejecutar con Docker
 
+El proyecto incluye un archivo `docker-compose.yml` que permite orquestar automáticamente los servicios del **Backend** y **Frontend**.
+
+Para iniciar la aplicación, desde la raíz del proyecto ejecute:
+
 ```bash
 docker compose up --build
 ```
 
-Servicios disponibles:
+Una vez finalice la construcción de las imágenes, los servicios estarán disponibles en:
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:8080
+
+Al iniciar la aplicación desde frontend podrá crear un usuario desde la pantalla de registro e iniciar sesión inmediatamente.
+
+> **Nota:** Para probar la funcionalidad de recuperación de contraseña es recomendable utilizar un correo electrónico válido, ya que el sistema enviará el enlace de recuperación mediante SMTP.
 
 ---
 
