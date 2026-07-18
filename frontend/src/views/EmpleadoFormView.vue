@@ -127,6 +127,14 @@ async function confirmarGuardado() {
                 <span class="confirm-label">Ciudad</span>
                 <span class="confirm-value">{{ form.ciudad || '—' }}</span>
               </div>
+              <div class="confirm-row">
+  <span class="confirm-label">Dirección</span>
+  <span class="confirm-value">{{ form.direccion || '—' }}</span>
+</div>
+<div class="confirm-row">
+  <span class="confirm-label">Fecha de ingreso</span>
+  <span class="confirm-value">{{ form.fechaIngreso || '—' }}</span>
+</div>
             </div>
 
             <p class="confirm-hint">Podrás editar estos datos después desde la lista de empleados.</p>

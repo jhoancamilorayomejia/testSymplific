@@ -12,6 +12,7 @@ const authStore = useAuthStore()
 
 // --- estado del modal de edición ---
 const modalAbierto = ref(false)
+const modoConfirmacionEdicion = ref(false)
 const guardando = ref(false)
 const errorModal = ref(null)
 const formEdit = reactive({
@@ -24,6 +25,18 @@ const formEdit = reactive({
   direccion: '',
   fechaIngreso: ''
 })
+
+// --- mensaje de éxito tras guardar ---
+const successMessage = ref(null)
+let successTimeout = null
+
+function mostrarExito(mensaje) {
+  successMessage.value = mensaje
+  clearTimeout(successTimeout)
+  successTimeout = setTimeout(() => {
+    successMessage.value = null
+  }, 3000)
+}
 
 async function cargarEmpleados() {
   cargando.value = true
@@ -61,11 +74,21 @@ function abrirModalEditar(emp) {
   formEdit.direccion = emp.direccion ?? ''
   formEdit.fechaIngreso = emp.fechaIngreso ?? ''
   errorModal.value = null
+  modoConfirmacionEdicion.value = false
   modalAbierto.value = true
 }
 
 function cerrarModal() {
   modalAbierto.value = false
+  modoConfirmacionEdicion.value = false
+}
+
+function pedirConfirmacionEdicion() {
+  modoConfirmacionEdicion.value = true
+}
+
+function volverAEditar() {
+  modoConfirmacionEdicion.value = false
 }
 
 async function guardarEdicion() {
@@ -76,8 +99,11 @@ async function guardarEdicion() {
     const idx = empleados.value.findIndex(e => e.id === formEdit.id)
     if (idx !== -1) empleados.value[idx] = data
     modalAbierto.value = false
+    modoConfirmacionEdicion.value = false
+    mostrarExito('Empleado actualizado correctamente')
   } catch {
     errorModal.value = 'No se pudo guardar. Revisa los datos e intenta de nuevo.'
+    modoConfirmacionEdicion.value = false
   } finally {
     guardando.value = false
   }
@@ -119,6 +145,8 @@ onMounted(cargarEmpleados)
         </div>
         <router-link to="/empleados/nuevo" class="btn-primary">+ Nuevo empleado</router-link>
       </div>
+
+      <p v-if="successMessage" class="state-message state-success">{{ successMessage }}</p>
 
       <p v-if="cargando" class="state-message">Cargando empleados…</p>
       <p v-else-if="error" class="state-message state-error">{{ error }}</p>
@@ -164,11 +192,12 @@ onMounted(cargarEmpleados)
       <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
         <div class="modal-card">
           <div class="modal-header">
-            <h2>Editar empleado</h2>
+            <h2>{{ modoConfirmacionEdicion ? 'Confirmar cambios' : 'Editar empleado' }}</h2>
             <button class="modal-close" @click="cerrarModal" aria-label="Cerrar">×</button>
           </div>
 
-          <form class="modal-form" @submit.prevent="guardarEdicion">
+          <!-- Paso 1: editar valores -->
+          <form v-if="!modoConfirmacionEdicion" class="modal-form" @submit.prevent="pedirConfirmacionEdicion">
             <div class="form-row">
               <label>Nombre completo</label>
               <input v-model="formEdit.nombre" required />
@@ -198,15 +227,52 @@ onMounted(cargarEmpleados)
               <input v-model="formEdit.fechaIngreso" type="date" />
             </div>
 
+            <div class="modal-actions">
+              <button type="button" class="btn-ghost-dark" @click="cerrarModal">Cancelar</button>
+              <button type="submit" class="btn-primary">Continuar</button>
+            </div>
+          </form>
+
+          <!-- Paso 2: confirmar cambios -->
+          <div v-else class="modal-body">
+            <p class="confirm-text">Vas a guardar estos cambios:</p>
+
+            <div class="confirm-summary">
+              <div class="confirm-row">
+                <span class="confirm-label">Nombre</span>
+                <span class="confirm-value">{{ formEdit.nombre }} {{ formEdit.apellido }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Email</span>
+                <span class="confirm-value">{{ formEdit.email }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Cargo</span>
+                <span class="confirm-value">{{ formEdit.cargo || '—' }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Ciudad</span>
+                <span class="confirm-value">{{ formEdit.ciudad || '—' }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Dirección</span>
+                <span class="confirm-value">{{ formEdit.direccion || '—' }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Fecha de ingreso</span>
+                <span class="confirm-value">{{ formEdit.fechaIngreso || '—' }}</span>
+              </div>
+            </div>
+
             <p v-if="errorModal" class="state-message state-error modal-error">{{ errorModal }}</p>
 
             <div class="modal-actions">
-              <button type="button" class="btn-ghost-dark" @click="cerrarModal">Cancelar</button>
-              <button type="submit" class="btn-primary" :disabled="guardando">
-                {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
+              <button type="button" class="btn-ghost-dark" @click="volverAEditar">Volver a editar</button>
+              <button type="button" class="btn-primary" :disabled="guardando" @click="guardarEdicion">
+                {{ guardando ? 'Guardando…' : 'Confirmar cambios' }}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -300,12 +366,34 @@ onMounted(cargarEmpleados)
 
 .modal-error { padding: 0.75rem 1rem; margin: 0; font-size: 0.85rem; }
 
+.modal-body { padding: 1.5rem; }
+.confirm-text { margin: 0 0 1rem; font-size: 0.9rem; color: #5B6E6A; }
+
+.confirm-summary {
+  border: 1px solid #EEF1EF;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #EEF1EF;
+  font-size: 0.88rem;
+}
+.confirm-row:last-child { border-bottom: none; }
+.confirm-label { color: #8A9895; font-weight: 600; }
+.confirm-value { font-weight: 600; text-align: right; }
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 0.5rem;
+  padding: 0 1.5rem 1.5rem;
 }
+.modal-form .modal-actions { padding: 0; margin-top: 0.5rem; }
 
 .btn-ghost-dark {
   background: transparent;
@@ -398,6 +486,14 @@ h1 {
   color: #5B6E6A;
 }
 .state-error { color: #B3402A; border-color: #EFCDC4; background: #FBF0EC; }
+.state-success {
+  color: #1C8F7A;
+  border-color: #BEE5DD;
+  background: #E6F5F2;
+  padding: 0.9rem 1.25rem;
+  text-align: left;
+  margin-bottom: 1rem;
+}
 
 .table-card {
   background: white;

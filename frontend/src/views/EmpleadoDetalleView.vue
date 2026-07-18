@@ -14,12 +14,36 @@ const error = ref(null)
 const nuevoBeneficio = ref({ nombreBeneficio: '', monto: null })
 const agregando = ref(false)
 
+// --- confirmación de nuevo beneficio ---
+const modalConfirmAgregarAbierto = ref(false)
+
+function abrirConfirmAgregar() {
+  modalConfirmAgregarAbierto.value = true
+}
+
+function cerrarConfirmAgregar() {
+  modalConfirmAgregarAbierto.value = false
+}
+
 // --- modal de edición de beneficio ---
 const modalAbierto = ref(false)
+const modoConfirmacionEdicion = ref(false)
 const guardandoModal = ref(false)
 const errorModal = ref(null)
 const idBeneficioEnEdicion = ref(null)
 const formEditBeneficio = reactive({ nombreBeneficio: '', monto: null })
+
+// --- mensaje de confirmación (post-guardado) ---
+const successMessage = ref(null)
+let successTimeout = null
+
+function mostrarExito(mensaje) {
+  successMessage.value = mensaje
+  clearTimeout(successTimeout)
+  successTimeout = setTimeout(() => {
+    successMessage.value = null
+  }, 3000)
+}
 
 const mapaEmbedUrl = computed(() => {
   if (!ubicacion.value) return null
@@ -63,13 +87,15 @@ async function cargarDetalle() {
   }
 }
 
-async function agregarBeneficio() {
+async function confirmarAgregarBeneficio() {
   agregando.value = true
   try {
     const id = route.params.id
     await empleadoService.crearBeneficio(id, nuevoBeneficio.value)
     nuevoBeneficio.value = { nombreBeneficio: '', monto: null }
+    modalConfirmAgregarAbierto.value = false
     await cargarDetalle()
+    mostrarExito('Beneficio agregado correctamente')
   } finally {
     agregando.value = false
   }
@@ -80,11 +106,21 @@ function abrirModalEdicion(b) {
   formEditBeneficio.nombreBeneficio = b.nombreBeneficio
   formEditBeneficio.monto = b.monto
   errorModal.value = null
+  modoConfirmacionEdicion.value = false
   modalAbierto.value = true
 }
 
 function cerrarModal() {
   modalAbierto.value = false
+  modoConfirmacionEdicion.value = false
+}
+
+function pedirConfirmacionEdicion() {
+  modoConfirmacionEdicion.value = true
+}
+
+function volverAEditar() {
+  modoConfirmacionEdicion.value = false
 }
 
 async function guardarEdicionBeneficio() {
@@ -94,9 +130,12 @@ async function guardarEdicionBeneficio() {
     const idEmp = route.params.id
     await empleadoService.actualizarBeneficio(idEmp, idBeneficioEnEdicion.value, { ...formEditBeneficio })
     modalAbierto.value = false
+    modoConfirmacionEdicion.value = false
     await cargarDetalle()
+    mostrarExito('Beneficio actualizado correctamente')
   } catch {
     errorModal.value = 'No se pudo guardar el beneficio. Intenta de nuevo.'
+    modoConfirmacionEdicion.value = false
   } finally {
     guardandoModal.value = false
   }
@@ -176,6 +215,8 @@ onMounted(cargarDetalle)
             </span>
           </div>
 
+          <p v-if="successMessage" class="state-message state-success">{{ successMessage }}</p>
+
           <p v-if="beneficios.length === 0" class="state-message state-muted">
             Este empleado todavía no tiene beneficios asignados.
           </p>
@@ -193,7 +234,7 @@ onMounted(cargarDetalle)
             </li>
           </ul>
 
-          <form class="add-benefit-form" @submit.prevent="agregarBeneficio">
+          <form class="add-benefit-form" @submit.prevent="abrirConfirmAgregar">
             <input
               v-model="nuevoBeneficio.nombreBeneficio"
               placeholder="Nombre del beneficio"
@@ -214,16 +255,51 @@ onMounted(cargarDetalle)
       </template>
     </main>
 
+    <!-- Modal de confirmación: agregar beneficio -->
+    <Teleport to="body">
+      <div v-if="modalConfirmAgregarAbierto" class="modal-overlay" @click.self="cerrarConfirmAgregar">
+        <div class="modal-card">
+          <div class="modal-header">
+            <h2>Confirmar nuevo beneficio</h2>
+            <button class="modal-close" @click="cerrarConfirmAgregar" aria-label="Cerrar">×</button>
+          </div>
+
+          <div class="modal-body">
+            <p class="confirm-text">Estás a punto de agregar este beneficio:</p>
+
+            <div class="confirm-summary">
+              <div class="confirm-row">
+                <span class="confirm-label">Nombre</span>
+                <span class="confirm-value">{{ nuevoBeneficio.nombreBeneficio || '—' }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Monto</span>
+                <span class="confirm-value">{{ formatMonto(nuevoBeneficio.monto) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-ghost-dark" @click="cerrarConfirmAgregar">Revisar de nuevo</button>
+            <button type="button" class="btn-primary" :disabled="agregando" @click="confirmarAgregarBeneficio">
+              {{ agregando ? 'Guardando…' : 'Confirmar y agregar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- Modal de edición de beneficio -->
     <Teleport to="body">
       <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
         <div class="modal-card">
           <div class="modal-header">
-            <h2>Editar beneficio</h2>
+            <h2>{{ modoConfirmacionEdicion ? 'Confirmar cambios' : 'Editar beneficio' }}</h2>
             <button class="modal-close" @click="cerrarModal" aria-label="Cerrar">×</button>
           </div>
 
-          <form class="modal-form" @submit.prevent="guardarEdicionBeneficio">
+          <!-- Paso 1: editar valores -->
+          <form v-if="!modoConfirmacionEdicion" class="modal-form" @submit.prevent="pedirConfirmacionEdicion">
             <div class="form-row">
               <label>Nombre del beneficio</label>
               <input v-model="formEditBeneficio.nombreBeneficio" required />
@@ -237,11 +313,34 @@ onMounted(cargarDetalle)
 
             <div class="modal-actions">
               <button type="button" class="btn-ghost-dark" @click="cerrarModal">Cancelar</button>
-              <button type="submit" class="btn-primary" :disabled="guardandoModal">
-                {{ guardandoModal ? 'Guardando…' : 'Guardar cambios' }}
-              </button>
+              <button type="submit" class="btn-primary">Continuar</button>
             </div>
           </form>
+
+          <!-- Paso 2: confirmar cambios -->
+          <div v-else class="modal-body">
+            <p class="confirm-text">Vas a guardar estos cambios:</p>
+
+            <div class="confirm-summary">
+              <div class="confirm-row">
+                <span class="confirm-label">Nombre</span>
+                <span class="confirm-value">{{ formEditBeneficio.nombreBeneficio || '—' }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="confirm-label">Monto</span>
+                <span class="confirm-value">{{ formatMonto(formEditBeneficio.monto) }}</span>
+              </div>
+            </div>
+
+            <p v-if="errorModal" class="state-message state-error modal-error">{{ errorModal }}</p>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-ghost-dark" @click="volverAEditar">Volver a editar</button>
+              <button type="button" class="btn-primary" :disabled="guardandoModal" @click="guardarEdicionBeneficio">
+                {{ guardandoModal ? 'Guardando…' : 'Confirmar cambios' }}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -306,6 +405,13 @@ onMounted(cargarDetalle)
 }
 .state-error { color: #B3402A; border-color: #EFCDC4; background: #FBF0EC; }
 .state-muted { padding: 1.25rem; text-align: left; }
+.state-success {
+  color: #1C8F7A;
+  border-color: #BEE5DD;
+  background: #E6F5F2;
+  padding: 0.9rem 1.25rem;
+  text-align: left;
+}
 
 /* Encabezado empleado */
 .employee-card {
@@ -515,6 +621,26 @@ onMounted(cargarDetalle)
 }
 .modal-close:hover { color: #1C2B2A; }
 
+.modal-body { padding: 1.5rem; }
+.confirm-text { margin: 0 0 1rem; font-size: 0.9rem; color: #5B6E6A; }
+
+.confirm-summary {
+  border: 1px solid #EEF1EF;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.confirm-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid #EEF1EF;
+  font-size: 0.88rem;
+}
+.confirm-row:last-child { border-bottom: none; }
+.confirm-label { color: #8A9895; font-weight: 600; }
+.confirm-value { font-weight: 600; text-align: right; }
+
 .modal-form {
   padding: 1.5rem;
   display: flex;
@@ -546,7 +672,9 @@ onMounted(cargarDetalle)
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 0.5rem;
+  padding: 0 1.5rem 1.5rem;
 }
+.modal-form .modal-actions { padding: 0; margin-top: 0.5rem; }
 
 .btn-ghost-dark {
   background: transparent;
