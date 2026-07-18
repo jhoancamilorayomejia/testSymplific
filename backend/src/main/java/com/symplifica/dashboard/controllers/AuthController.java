@@ -1,57 +1,47 @@
 package com.symplifica.dashboard.controllers;
 
+import com.symplifica.dashboard.dto.ForgotPasswordRequest;
 import com.symplifica.dashboard.dto.LoginRequest;
 import com.symplifica.dashboard.dto.LoginResponse;
 import com.symplifica.dashboard.dto.RegisterRequest;
-import com.symplifica.dashboard.exception.CredencialesInvalidasException;
-import com.symplifica.dashboard.model.User;
-import com.symplifica.dashboard.repository.UserRepository;
-import com.symplifica.dashboard.security.JwtUtil;
+import com.symplifica.dashboard.dto.ResetPasswordRequest;
+import com.symplifica.dashboard.services.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final AuthService authService;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(CredencialesInvalidasException::new);
+        return ResponseEntity.ok(authService.login(request));
+    }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new CredencialesInvalidasException();
-        }
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        authService.solicitarRecuperacion(request.getEmail());
+        return ResponseEntity.ok(Map.of("message", "Si el correo existe, se envió un enlace de recuperación"));
+    }
 
-        String token = jwtUtil.generarToken(user.getEmail(), user.getRol());
-        return ResponseEntity.ok(new LoginResponse(token, user.getIdUser(), user.getEmail(), user.getRol()));
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.restablecerContrasena(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(Map.of("message", "Contraseña actualizada correctamente"));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<LoginResponse> register(@Valid @RequestBody RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Ya existe un usuario con ese correo");
-        }
-
-        User user = new User();
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRol("ADMIN");
-
-        User guardado = userRepository.save(user);
-
-        String token = jwtUtil.generarToken(guardado.getEmail(), guardado.getRol());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(new LoginResponse(token, guardado.getIdUser(), guardado.getEmail(), guardado.getRol()));
-    }
+@ResponseStatus(HttpStatus.CREATED)
+public LoginResponse register(@Valid @RequestBody RegisterRequest request) {
+    return authService.registrar(request);
+}
 }

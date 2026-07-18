@@ -102,3 +102,11 @@ docker compose up --build
 \`\`\`bash
 docker exec -it symplifica-db psql -U symplifica -d symplifica-db
 \`\`\`
+
+## Configuración de correo (SMTP)
+\`\`\`properties
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=tu-correo@gmail.com
+MAIL_PASSWORD=tu-app-password
+\`\`\`

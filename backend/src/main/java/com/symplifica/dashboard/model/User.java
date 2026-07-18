@@ -1,5 +1,7 @@
 package com.symplifica.dashboard.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -26,4 +28,10 @@ public class User {
     @NotBlank
     @Column(nullable = false, length = 50)
     private String rol;
+
+    @Column(name = "reset_token", length = 255)
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
 }

@@ -10,7 +10,9 @@ const router = createRouter({
     { path: '/login', name: 'login', component: LoginView },
     { path: '/', name: 'empleados', component: EmpleadosListView, meta: { requiresAuth: true } },
     { path: '/empleados/nuevo', name: 'empleado-nuevo', component: EmpleadoFormView, meta: { requiresAuth: true } },
-    { path: '/empleados/:id', name: 'empleado-detalle', component: EmpleadoDetalleView, meta: { requiresAuth: true } }
+    { path: '/empleados/:id', name: 'empleado-detalle', component: EmpleadoDetalleView, meta: { requiresAuth: true } },
+    { path: '/reset-password',name: 'reset-password', component: () => import('../views/ResetPasswordView.vue')
+}
   ]
 })
 

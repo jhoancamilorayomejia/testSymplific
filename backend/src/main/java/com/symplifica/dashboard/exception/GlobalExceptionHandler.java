@@ -39,4 +39,14 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining(", "));
         return ResponseEntity.badRequest().body(Map.of("error", msg));
     }
+
+    @ExceptionHandler(TokenInvalidoException.class)
+public ResponseEntity<Map<String, String>> handleTokenInvalido(TokenInvalidoException ex) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
+}
+
+@ExceptionHandler(EmailYaRegistradoException.class)
+public ResponseEntity<Map<String, String>> handleEmailDuplicado(EmailYaRegistradoException ex) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", ex.getMessage()));
+}
 }

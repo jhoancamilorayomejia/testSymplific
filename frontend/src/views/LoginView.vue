@@ -58,6 +58,7 @@ function abrirLogin() {
 function cerrarLogin() {
   mostrarModalLogin.value = false
   registroExitoso.value = false
+  mostrarOlvidoPassword.value = false
 }
 
 async function iniciarSesion() {
@@ -73,6 +74,38 @@ async function iniciarSesion() {
     loginCargando.value = false
   }
 }
+
+// --- Olvidé mi contraseña ---
+const mostrarOlvidoPassword = ref(false)
+const emailRecuperacion = ref('')
+const recuperacionEnviada = ref(false)
+const recuperacionCargando = ref(false)
+const errorRecuperacion = ref(null)
+
+function abrirOlvidoPassword() {
+  emailRecuperacion.value = loginEmail.value
+  recuperacionEnviada.value = false
+  errorRecuperacion.value = null
+  mostrarOlvidoPassword.value = true
+}
+
+function volverALogin() {
+  mostrarOlvidoPassword.value = false
+}
+
+async function enviarRecuperacion() {
+  recuperacionCargando.value = true
+  errorRecuperacion.value = null
+  try {
+    await authService.forgotPassword(emailRecuperacion.value)
+    recuperacionEnviada.value = true
+  } catch {
+    errorRecuperacion.value = 'No se pudo procesar la solicitud'
+  } finally {
+    recuperacionCargando.value = false
+  }
+}
+
 </script>
 
 <template>
@@ -157,37 +190,76 @@ async function iniciarSesion() {
       </form>
     </section>
 
-    <!-- Modal de login -->
-    <div v-if="mostrarModalLogin" class="modal-overlay" @click.self="cerrarLogin">
-      <div class="modal-card">
-        <button class="modal-close" @click="cerrarLogin" aria-label="Cerrar">✕</button>
+  <!-- Modal de login / recuperación -->
+<div v-if="mostrarModalLogin" class="modal-overlay" @click.self="cerrarLogin">
+  <div class="modal-card">
+    <button class="modal-close" @click="cerrarLogin" aria-label="Cerrar">✕</button>
 
-        <form @submit.prevent="iniciarSesion" class="login-form modal-form">
-          <p v-if="registroExitoso" class="success-banner">
-            ✓ Usuario registrado correctamente. Inicia sesión para continuar.
-          </p>
+    <!-- Vista: iniciar sesión -->
+    <form v-if="!mostrarOlvidoPassword" @submit.prevent="iniciarSesion" class="login-form modal-form">
+      <p v-if="registroExitoso" class="success-banner">
+        ✓ Usuario registrado correctamente. Inicia sesión para continuar.
+      </p>
 
-          <h2>Bienvenido de vuelta</h2>
-          <p class="subtitle">Ingresa tus credenciales para continuar</p>
+      <h2>Bienvenido de vuelta</h2>
+      <p class="subtitle">Ingresa tus credenciales para continuar</p>
 
+      <div class="form-row">
+        <label>Correo electrónico</label>
+        <input v-model="loginEmail" type="email" placeholder="nombre@symplifica.com" required />
+      </div>
+
+      <div class="form-row">
+        <label>Contraseña</label>
+        <input v-model="loginPassword" type="password" placeholder="••••••••" required />
+      </div>
+
+      <p v-if="loginError" class="error">{{ loginError }}</p>
+
+      <button type="submit" class="btn-primary" :disabled="loginCargando">
+        {{ loginCargando ? 'Ingresando…' : 'Ingresar' }}
+      </button>
+
+      <button type="button" class="link-secondary" @click="abrirOlvidoPassword">
+        ¿Olvidaste tu contraseña?
+      </button>
+    </form>
+
+    <!-- Vista: olvidé mi contraseña -->
+    <div v-else class="login-form modal-form">
+      <template v-if="!recuperacionEnviada">
+        <h2>Recuperar contraseña</h2>
+        <p class="subtitle">Te enviaremos un enlace a tu correo</p>
+
+        <form @submit.prevent="enviarRecuperacion">
           <div class="form-row">
             <label>Correo electrónico</label>
-            <input v-model="loginEmail" type="email" placeholder="nombre@symplifica.com" required />
+            <input v-model="emailRecuperacion" type="email" placeholder="nombre@symplifica.com" required />
           </div>
 
-          <div class="form-row">
-            <label>Contraseña</label>
-            <input v-model="loginPassword" type="password" placeholder="••••••••" required />
-          </div>
+          <p v-if="errorRecuperacion" class="error">{{ errorRecuperacion }}</p>
 
-          <p v-if="loginError" class="error">{{ loginError }}</p>
-
-          <button type="submit" class="btn-primary" :disabled="loginCargando">
-            {{ loginCargando ? 'Ingresando…' : 'Ingresar' }}
+          <button type="submit" class="btn-primary" :disabled="recuperacionCargando">
+            {{ recuperacionCargando ? 'Enviando…' : 'Enviar enlace' }}
           </button>
         </form>
-      </div>
+
+        <button type="button" class="link-secondary" @click="volverALogin">
+          ← Volver a iniciar sesión
+        </button>
+      </template>
+
+      <template v-else>
+        <p class="success-banner">
+          ✓ Si el correo está registrado, recibirás un enlace de recuperación en unos minutos.
+        </p>
+        <button type="button" class="btn-primary" @click="volverALogin">
+          Volver a iniciar sesión
+        </button>
+      </template>
     </div>
+  </div>
+</div>
   </div>
 </template>
 
