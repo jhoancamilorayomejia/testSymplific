@@ -1,5 +1,6 @@
 package com.symplifica.dashboard.services;
 
+import com.symplifica.dashboard.exception.EmpleadoNoEncontradoException;
 import com.symplifica.dashboard.model.Empleado;
 import com.symplifica.dashboard.repository.EmpleadoRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,26 @@ public class EmpleadoService {
     }
 
     public Empleado buscarPorId(Long id) {
-        return empleadoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Empleado no encontrado: " + id));
+    return empleadoRepository.findById(id)
+            .orElseThrow(() -> new EmpleadoNoEncontradoException(id));
     }
+
+    public Empleado actualizar(Long id, Empleado datos) {
+    Empleado empleado = buscarPorId(id); // reutiliza el 404 que ya tienes
+
+    empleado.setNombre(datos.getNombre());
+    empleado.setApellido(datos.getApellido());
+    empleado.setEmail(datos.getEmail());
+    empleado.setCargo(datos.getCargo());
+    empleado.setCiudad(datos.getCiudad());
+    empleado.setDireccion(datos.getDireccion());
+    empleado.setFechaIngreso(datos.getFechaIngreso());
+
+    return empleadoRepository.save(empleado);
+}
+
+public void eliminar(Long id) {
+    Empleado empleado = buscarPorId(id);
+    empleadoRepository.delete(empleado);
+}
 }

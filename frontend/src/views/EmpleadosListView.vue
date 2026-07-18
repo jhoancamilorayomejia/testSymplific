@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import empleadoService from '../services/empleadoService'
 import { useAuthStore } from '../stores/auth'
@@ -9,6 +9,21 @@ const cargando = ref(true)
 const error = ref(null)
 const router = useRouter()
 const authStore = useAuthStore()
+
+// --- estado del modal de edición ---
+const modalAbierto = ref(false)
+const guardando = ref(false)
+const errorModal = ref(null)
+const formEdit = reactive({
+  id: null,
+  nombre: '',
+  apellido: '',
+  email: '',
+  cargo: '',
+  ciudad: '',
+  direccion: '',
+  fechaIngreso: ''
+})
 
 async function cargarEmpleados() {
   cargando.value = true
@@ -33,6 +48,49 @@ function cerrarSesion() {
 
 function iniciales(emp) {
   return `${emp.nombre?.[0] ?? ''}${emp.apellido?.[0] ?? ''}`.toUpperCase()
+}
+
+// --- lógica del modal ---
+function abrirModalEditar(emp) {
+  formEdit.id = emp.id
+  formEdit.nombre = emp.nombre ?? ''
+  formEdit.apellido = emp.apellido ?? ''
+  formEdit.email = emp.email ?? ''
+  formEdit.cargo = emp.cargo ?? ''
+  formEdit.ciudad = emp.ciudad ?? ''
+  formEdit.direccion = emp.direccion ?? ''
+  formEdit.fechaIngreso = emp.fechaIngreso ?? ''
+  errorModal.value = null
+  modalAbierto.value = true
+}
+
+function cerrarModal() {
+  modalAbierto.value = false
+}
+
+async function guardarEdicion() {
+  guardando.value = true
+  errorModal.value = null
+  try {
+    const { data } = await empleadoService.actualizar(formEdit.id, { ...formEdit })
+    const idx = empleados.value.findIndex(e => e.id === formEdit.id)
+    if (idx !== -1) empleados.value[idx] = data
+    modalAbierto.value = false
+  } catch {
+    errorModal.value = 'No se pudo guardar. Revisa los datos e intenta de nuevo.'
+  } finally {
+    guardando.value = false
+  }
+}
+
+async function eliminar(id) {
+  if (!confirm('¿Eliminar este empleado? Esta acción no se puede deshacer.')) return
+  try {
+    await empleadoService.eliminar(id)
+    empleados.value = empleados.value.filter(e => e.id !== id)
+  } catch {
+    error.value = 'No se pudo eliminar el empleado'
+  }
 }
 
 onMounted(cargarEmpleados)
@@ -88,13 +146,65 @@ onMounted(cargarEmpleados)
               <td>{{ emp.cargo || '—' }}</td>
               <td>{{ emp.ciudad }}</td>
               <td class="cell-action">
-                <button class="btn-link" @click.stop="verDetalle(emp.id)">Ver detalle →</button>
-              </td>
+  <button class="btn-link" @click.stop="verDetalle(emp.id)">Ver detalle →</button>
+  <button class="btn-link" @click.stop="abrirModalEditar(emp)">Editar</button>
+  <button class="btn-link btn-danger" @click.stop="eliminar(emp.id)">Eliminar</button>
+</td>
             </tr>
           </tbody>
         </table>
       </div>
     </main>
+    <Teleport to="body">
+  <div v-if="modalAbierto" class="modal-overlay" @click.self="cerrarModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Editar empleado</h2>
+        <button class="modal-close" @click="cerrarModal" aria-label="Cerrar">×</button>
+      </div>
+
+      <form class="modal-form" @submit.prevent="guardarEdicion">
+        <div class="form-row">
+          <label>Nombre</label>
+          <input v-model="formEdit.nombre" required />
+        </div>
+        <div class="form-row">
+          <label>Apellido</label>
+          <input v-model="formEdit.apellido" required />
+        </div>
+        <div class="form-row">
+          <label>Email</label>
+          <input v-model="formEdit.email" type="email" required />
+        </div>
+        <div class="form-row">
+          <label>Cargo</label>
+          <input v-model="formEdit.cargo" />
+        </div>
+        <div class="form-row">
+          <label>Ciudad</label>
+          <input v-model="formEdit.ciudad" required />
+        </div>
+        <div class="form-row">
+          <label>Dirección</label>
+          <input v-model="formEdit.direccion" />
+        </div>
+        <div class="form-row">
+          <label>Fecha de ingreso</label>
+          <input v-model="formEdit.fechaIngreso" type="date" />
+        </div>
+
+        <p v-if="errorModal" class="state-message state-error modal-error">{{ errorModal }}</p>
+
+        <div class="modal-actions">
+          <button type="button" class="btn-ghost-dark" @click="cerrarModal">Cancelar</button>
+          <button type="submit" class="btn-primary" :disabled="guardando">
+            {{ guardando ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</Teleport>
   </div>
 </template>
 
@@ -114,6 +224,97 @@ onMounted(cargarEmpleados)
   background: #12302B;
   color: #F7F8F6;
 }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 48, 43, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 50;
+}
+
+.modal-card {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #E4E7E4;
+}
+.modal-header h2 { margin: 0; font-size: 1.15rem; font-weight: 700; }
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #5B6E6A;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.modal-close:hover { color: #1C2B2A; }
+
+.modal-form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.form-row { display: flex; flex-direction: column; gap: 0.3rem; }
+.form-row label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5B6E6A;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.form-row input {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #E4E7E4;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-family: inherit;
+}
+.form-row input:focus {
+  outline: none;
+  border-color: #1C8F7A;
+}
+
+.modal-error { padding: 0.75rem 1rem; margin: 0; font-size: 0.85rem; }
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.btn-ghost-dark {
+  background: transparent;
+  border: 1px solid #E4E7E4;
+  color: #1C2B2A;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-ghost-dark:hover { background: #F4FAF9; }
+
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .brand { display: flex; align-items: center; gap: 0.5rem; }
 .brand-mark {

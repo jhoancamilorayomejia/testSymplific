@@ -14,7 +14,7 @@ public class JwtUtil {
     private final SecretKey key = Keys.hmacShaKeyFor(
             "symplifica-secret-key-para-pruebas-tecnicas-2026".getBytes());
 
-    private static final long EXPIRATION_MS = 1000 * 60; //1 min
+    private static final long EXPIRATION_MS = 1000 * 60 * 20; //20 min
 
     public String generarToken(String email, String rol) {
         return Jwts.builder()

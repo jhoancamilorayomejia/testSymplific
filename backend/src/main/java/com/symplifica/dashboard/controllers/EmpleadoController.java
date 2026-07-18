@@ -31,4 +31,15 @@ public class EmpleadoController {
     public Empleado crear(@Valid @RequestBody Empleado empleado) {
         return empleadoService.crear(empleado);
     }
+
+    @PutMapping("/{id}")
+public Empleado actualizar(@PathVariable Long id, @Valid @RequestBody Empleado empleado) {
+    return empleadoService.actualizar(id, empleado);
+}
+
+@DeleteMapping("/{id}")
+@ResponseStatus(HttpStatus.NO_CONTENT)
+public void eliminar(@PathVariable Long id) {
+    empleadoService.eliminar(id);
+}
 }
