@@ -91,15 +91,14 @@ Editar el archivo:
 backend/src/main/resources/application.properties
 ```
 
-Configurar el usuario y la contraseña de PostgreSQL según tu equipo:
+Configurar el usuario y la contraseña de PostgreSQL(Docker) según tu equipo:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://localhost:5432/symplifica-db
 spring.datasource.username=postgres
 spring.datasource.password=tu_password
-
-jwt.secret=cambia-esto-en-produccion
-jwt.expiration-ms=86400000
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
 ```
 
 ---
